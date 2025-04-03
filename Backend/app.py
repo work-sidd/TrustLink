@@ -3,14 +3,16 @@ import requests
 from bs4 import BeautifulSoup
 import firebase_admin
 from firebase_admin import credentials, firestore
-import time
-import random
+import os
+import json
 
 app = Flask(__name__)
+firebase_credentials = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
 
-cred = credentials.Certificate("C:/Users/works/Documents/TrustLink/serviceaccountkey.json") 
+cred = credentials.Certificate(firebase_credentials)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
