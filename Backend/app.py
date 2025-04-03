@@ -79,9 +79,11 @@ def track_url():
         return jsonify({"error": product_data["error"]}), 400
 
     # Store product details in Firestore
-    store_in_firestore(product_data)
-    
-    return jsonify({"message": "Product details saved successfully!"})
+    try:
+        store_in_firestore(product_data)
+        return jsonify({"message": "✅ Product details saved successfully!"})
+    except Exception as e:
+        return jsonify({"error": f"Firestore Error: {e}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
