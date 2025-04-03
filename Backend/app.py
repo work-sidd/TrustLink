@@ -63,9 +63,9 @@ def scrape_amazon(amazon_url):
     Determines if the URL is a search results page or a product page
     and calls the appropriate scraping method.
     """
-    if "/s?" in amazon_url:  # Identifies search results page
+    if "/s?" in amazon_url:  
         return scrape_amazon_search_results(amazon_url)
-    elif "/dp/" in amazon_url or "/gp/" in amazon_url:  # Identifies a product page
+    elif "/dp/" in amazon_url or "/gp/" in amazon_url:  
         return scrape_amazon_product_page(amazon_url)
     else:
         return {"error": "Invalid Amazon URL format"}
@@ -74,12 +74,12 @@ def store_in_firestore(products):
     """
     Stores the product(s) in Firebase Firestore.
     """
-    for product_name, product_url in products.items():  # Unpack dictionary
+    for product_name, product_url in products.items():  
         try:
             product_ref = db.collection("products").document()
             product_data = {
                 "name": product_name,
-                "url": product_url  # Ensure URL is also stored
+                "url": product_url 
             }
             product_ref.set(product_data)
             print(f"✅ Stored in Firestore: {product_name}")
@@ -99,15 +99,11 @@ def track_url():
 
     print(f"Received URL: {amazon_url}")
 
-    # Scrape the product details
     product_data = scrape_amazon(amazon_url)
-
-    print(f"🟢 Scraped Products: {product_data}")
 
     if "error" in product_data:
         return jsonify({"error": product_data["error"]}), 400
 
-    # Store product details in Firestore
     try:
         store_in_firestore(product_data)
         return jsonify({"message": "✅ Product details saved successfully!"})
