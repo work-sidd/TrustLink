@@ -25,23 +25,18 @@ HEADERS = {
 }
 
 def scrape_amazon_search_results(search_url):
-    """
-    Scrapes Amazon search results page to extract product names.
-    """
     response = requests.get(search_url, headers=HEADERS)
     if response.status_code != 200:
         return {"error": "Failed to fetch search results"}
 
     soup = BeautifulSoup(response.text, "html.parser")
-    products = []
+    product_names = []
 
-    for item in soup.select(".s-main-slot .s-result-item"):
-        title_tag = item.select_one("h2 a.a-link-normal")
-        if title_tag:
-            product_name = title_tag.get_text(strip=True)
-            products.append({"name": product_name})  
+    for title_tag in soup.select("h2.a-size-base-plus.a-spacing-none.a-color-base.a-text-normal"):
+        product_name = title_tag.get_text(strip=True)
+        product_names.append(product_name)
 
-    return products
+    return product_names
 
 def scrape_amazon_product_page(product_url):
     """
