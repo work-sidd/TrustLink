@@ -4,11 +4,19 @@ from bs4 import BeautifulSoup
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+import tempfile
+import json
 
 app = Flask(__name__)
 
-# Initialize Firebase
-cred = credentials.Certificate(os.getenv("FIREBASE_CREDENTIALS"))
+
+firebase_credentials = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
+
+with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".json") as temp_file:
+    json.dump(firebase_credentials, temp_file)
+    temp_file_path = temp_file.name  
+
+cred = credentials.Certificate(temp_file_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
