@@ -52,9 +52,12 @@ def store_in_firestore(products):
     Stores the list of products in Firebase Firestore.
     """
     for product in products:
-        product_ref = db.collection("products").document()
-        product_ref.set(product)
-        print(f"Stored in Firestore: {product['name']}")
+        try:
+            product_ref = db.collection("products").document()
+            product_ref.set(product)
+            print(f"✅ Stored in Firestore: {product['name']}")
+        except Exception as e:
+            print(f"❌ Firestore Error: {e}")
 
 @app.route('/track-url', methods=['POST'])
 def track_url():
