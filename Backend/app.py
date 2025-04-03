@@ -45,6 +45,20 @@ def scrape():
     products = scrape_amazon_search(search_url)
     return jsonify(products)
 
+@app.route('/track-url', methods=['POST'])
+def track_url():
+    data = request.json
+    amazon_url = data.get("url")
+
+    if not amazon_url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    print(f"Received URL: {amazon_url}")
+    
+    # Here, you can later add logic to store URLs in a database
+    return jsonify({"message": "URL received successfully!"})
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
 
