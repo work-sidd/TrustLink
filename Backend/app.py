@@ -30,26 +30,33 @@ def scrape_amazon_search_results(search_url):
         return {"error": "Failed to fetch search results"}
 
     soup = BeautifulSoup(response.text, "html.parser")
-    product_names = []
+    product_data = {}
 
-    for title_tag in soup.select("h2.a-size-base-plus.a-spacing-none.a-color-base.a-text-normal"):
-        product_name = title_tag.get_text(strip=True)
-        product_names.append(product_name)
+    for link_tag in soup.select("a.a-link-normal.s-line-clamp-3.s-link-style.a-text-normal"):
+        title_tag = link_tag.find("h2", class_="a-size-base-plus a-spacing-none a-color-base a-text-normal")
+        if title_tag:
+            product_name = title_tag.get_text(strip=True)
+            product_url = "https://www.amazon.in" + link_tag["href"]
+            product_data[product_name] = product_url
 
-    return product_names
+    return product_data
 
 def scrape_amazon_product_page(product_url):
     """
-    Scrapes an Amazon product page to extract the product name.
+    Scrapes an Amazon product page to extract the product name and return it as a dictionary.
     """
     response = requests.get(product_url, headers=HEADERS)
     if response.status_code != 200:
         return {"error": "Failed to fetch product page"}
 
     soup = BeautifulSoup(response.text, "html.parser")
-    product_name = soup.select_one("#productTitle")
+    product_name_tag = soup.select_one("#productTitle")
 
-    return {"name": product_name.get_text(strip=True)} if product_name else {"error": "Product title not found"}
+    if not product_name_tag:
+        return {"error": "Product title not found"}
+
+    product_name = product_name_tag.get_text(strip=True)
+    return {product_name: product_url}
 
 def scrape_amazon(amazon_url):
     """
@@ -67,13 +74,15 @@ def store_in_firestore(products):
     """
     Stores the product(s) in Firebase Firestore.
     """
-    if isinstance(products, dict): 
-        products = [products] 
-    for product in products:
+    for product_name, product_url in products.items():  # Unpack dictionary
         try:
             product_ref = db.collection("products").document()
-            product_ref.set(product)
-            print(f"✅ Stored in Firestore: {product['name']}")
+            product_data = {
+                "name": product_name,
+                "url": product_url  # Ensure URL is also stored
+            }
+            product_ref.set(product_data)
+            print(f"✅ Stored in Firestore: {product_name}")
         except Exception as e:
             print(f"❌ Firestore Error: {e}")
 
