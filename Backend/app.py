@@ -74,11 +74,12 @@ def track_url():
     
     # Scrape the product details
     product_data = scrape_amazon_search(amazon_url)
+
+    print(f"🟢 Scraped Products: {product_data}")
     
     if "error" in product_data:
         return jsonify({"error": product_data["error"]}), 400
     
-    print(f"🟢 Scraped Products: {product_data}")
 
     # Store product details in Firestore
     try:
