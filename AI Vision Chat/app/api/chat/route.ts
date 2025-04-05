@@ -4,9 +4,8 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-
 // Opt out of static rendering
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
@@ -14,13 +13,13 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { message, image } = await req.json();
+    const { message, context } = await req.json();
 
     // console.log(message, image)
     // console.log("Received message:", process.env.NEXT_PUBLIC_OPENAI_API_KEY);
-    if (!message || !image) {
+    if (!message || !context) {
       return NextResponse.json(
-        { error: "Message and image are required" },
+        { error: "Message and context are required" },
         { status: 400 }
       );
     }
@@ -28,18 +27,16 @@ export async function POST(req: Request) {
     const response = await openai.responses.create({
       model: "gpt-4o-mini",
       input: [
-          {
-              role: "user",
-              content: [
-                  { type: "input_text", text: message },
-                  {
-                      type: "input_image",
-                      image_url: image,
-                  },
-              ],
-          },
+        {
+          role: "system",
+          content: `context : ${context} these is the context of the image answer the question based on this context these is the image context so suppose these as image`,
+        },
+        {
+          role: "user",
+          content: [{ type: "input_text", text: message }],
+        },
       ],
-  });
+    });
 
     return NextResponse.json({
       response: response.output_text,

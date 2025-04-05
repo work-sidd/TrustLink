@@ -1,9 +1,10 @@
 "use client";
 
 import { Message } from "@/app/types/chat";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   message: Message;
@@ -28,7 +29,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <p className="text-sm font-medium">
           {isBot ? "AI Assistant" : "You"}
         </p>
-        <p className="text-sm text-muted-foreground">{message.content}</p>
+        <ReactMarkdown>
+          {message.content}
+        </ReactMarkdown>
       </div>
     </div>
   );

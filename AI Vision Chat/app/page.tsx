@@ -45,7 +45,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
-          image: state.image,
+          context: state.image,
         }),
       });
 
@@ -89,8 +89,8 @@ export default function Home() {
             <p className="text-sm text-destructive">{state.error}</p>
           )}
         </div>
-        <Card className="flex flex-col">
-          <ScrollArea className="flex-1">
+        <Card className="flex flex-col h-[85vh]">
+          <ScrollArea className="flex-1 overflow-y-scroll">
             {state.messages.length === 0 ? (
               <div className="flex h-full items-center justify-center p-8 text-center text-muted-foreground">
                 <p>

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { createWorker } from "tesseract.js"
 
 interface ImageUploadProps {
   onImageUpload: (image: string) => void;
@@ -19,10 +20,13 @@ export function ImageUpload({ onImageUpload, isLoading }: ImageUploadProps) {
       const file = acceptedFiles[0];
       if (file) {
         const reader = new FileReader();
-        reader.onloadend = () => {
+        reader.onloadend = async () => {
           const base64String = reader.result as string;
           setPreview(base64String);
-          onImageUpload(base64String);
+          const worker = await createWorker('eng')
+          const ret = await worker.recognize(base64String)
+          onImageUpload(ret.data.text);
+          worker.terminate()
         };
         reader.readAsDataURL(file);
       }
