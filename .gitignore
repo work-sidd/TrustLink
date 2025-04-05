@@ -1,8 +1,6 @@
 node_modules
 trustlink-extension
 API keys.txt
-package-lock.json
-package.json
 serviceaccountkey.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/nextjs,node,react,python
