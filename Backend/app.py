@@ -6,6 +6,7 @@ from firebase_admin import credentials, firestore
 import os
 import tempfile
 import json
+import re
 
 app = Flask(__name__)
 
@@ -69,6 +70,16 @@ def scrape_amazon(amazon_url):
         return scrape_amazon_product_page(amazon_url)
     else:
         return {"error": "Invalid Amazon URL format"}
+    
+def clean_amazon_title(title, word_limit=6):
+    title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
+
+    title = re.sub(r'[|/,:]', '', title)
+    title = re.sub(r'\s+', ' ', title)
+
+    words = title.strip().split()
+    short_title = ' '.join(words[:word_limit])
+    return short_title
 
 def store_in_firestore(products):
     """
@@ -77,8 +88,10 @@ def store_in_firestore(products):
     for product_name, product_url in products.items():  
         try:
             product_ref = db.collection("products").document()
+            cleaned_name = clean_amazon_title(product_name)
             product_data = {
-                "name": product_name,
+                "name": cleaned_name,
+                "full_name": product_name,
                 "url": product_url 
             }
             product_ref.set(product_data)
