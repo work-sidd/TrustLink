@@ -190,6 +190,38 @@ def match_product():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/trust-data', methods=['POST'])
+def get_batch_trust_data():
+    try:
+        data = request.get_json()
+        asin_list = data.get("asins", [])
+        if not asin_list:
+            return jsonify({}), 400
+
+        trustified_ref = db.collection("trustified_data")
+        result = {}
+
+        for asin in asin_list:
+            products_query = db.collection("products").where("asin", "==", asin).stream()
+            product_doc = next(products_query, None)
+            if product_doc:
+                full_name = product_doc.to_dict().get("full_name", "")
+                trust_match = trustified_ref.document(full_name).get()
+                if trust_match.exists:
+                    trust_data = trust_match.to_dict()
+                    result[asin] = {
+                        "testing_status": trust_data.get("testing_status"),
+                        "tested_by": trust_data.get("tested_by"),
+                        "batch_no": trust_data.get("batch_no"),
+                        "published_date": trust_data.get("published_date"),
+                        "report_url": trust_data.get("report_url")
+                    }
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
