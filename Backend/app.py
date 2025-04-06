@@ -7,6 +7,7 @@ import os
 import tempfile
 import json
 import re
+from rapidfuzz import fuzz, process
 
 app = Flask(__name__)
 
