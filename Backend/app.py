@@ -26,6 +26,23 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
 }
 
+def clean_amazon_title(title, word_limit=6):
+    title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
+
+    title = re.sub(r'[|/,:]', '', title)
+    title = re.sub(r'\s+', ' ', title)
+
+    words = title.strip().split()
+    short_title = ' '.join(words[:word_limit])
+    return short_title
+
+def extract_asin_from_url(url):
+    """Extract ASIN from a standard Amazon URL."""
+    match = re.search(r"/dp/([A-Z0-9]{10})|/gp/product/([A-Z0-9]{10})", url)
+    if match:
+        return match.group(1) or match.group(2)
+    return None
+
 def scrape_amazon_search_results(search_url):
     response = requests.get(search_url, headers=HEADERS)
     if response.status_code != 200:
@@ -39,66 +56,56 @@ def scrape_amazon_search_results(search_url):
         if title_tag:
             product_name = title_tag.get_text(strip=True)
             product_url = "https://www.amazon.in" + link_tag["href"]
-            product_data[product_name] = product_url
+            asin = extract_asin_from_url(product_url)
+            if asin:
+                product_data[asin] = {
+                    "full_name": product_name,
+                    "name": clean_amazon_title(product_name),
+                    "asin": asin
+                }
 
     return product_data
 
 def scrape_amazon_product_page(product_url):
-    """
-    Scrapes an Amazon product page to extract the product name and return it as a dictionary.
-    """
     response = requests.get(product_url, headers=HEADERS)
     if response.status_code != 200:
         return {"error": "Failed to fetch product page"}
 
     soup = BeautifulSoup(response.text, "html.parser")
     product_name_tag = soup.select_one("#productTitle")
-
     if not product_name_tag:
         return {"error": "Product title not found"}
 
     product_name = product_name_tag.get_text(strip=True)
-    return {product_name: product_url}
+    asin = extract_asin_from_url(product_url)
+    if not asin:
+        return {"error": "ASIN not found in URL"}
+
+    return {
+        asin: {
+            "full_name": product_name,
+            "name": clean_amazon_title(product_name),
+            "asin": asin
+        }
+    }
 
 def scrape_amazon(amazon_url):
-    """
-    Determines if the URL is a search results page or a product page
-    and calls the appropriate scraping method.
-    """
-    if "/s?" in amazon_url:  
+    if "/s?" in amazon_url:
         return scrape_amazon_search_results(amazon_url)
-    elif "/dp/" in amazon_url or "/gp/" in amazon_url:  
+    elif "/dp/" in amazon_url or "/gp/" in amazon_url:
         return scrape_amazon_product_page(amazon_url)
     else:
         return {"error": "Invalid Amazon URL format"}
-    
-def clean_amazon_title(title, word_limit=6):
-    title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
-
-    title = re.sub(r'[|/,:]', '', title)
-    title = re.sub(r'\s+', ' ', title)
-
-    words = title.strip().split()
-    short_title = ' '.join(words[:word_limit])
-    return short_title
 
 def store_in_firestore(products):
-    """
-    Stores the product(s) in Firebase Firestore.
-    """
-    for product_name, product_url in products.items():  
+    for asin, product_info in products.items():
         try:
             product_ref = db.collection("products").document()
-            cleaned_name = clean_amazon_title(product_name)
-            product_data = {
-                "name": cleaned_name,
-                "full_name": product_name,
-                "url": product_url 
-            }
-            product_ref.set(product_data)
-            print(f"✅ Stored in Firestore: {product_name}")
+            product_ref.set(product_info)
+            print(f"✅ Stored in Firestore: {product_info['full_name']} (ASIN: {asin})")
         except Exception as e:
             print(f"❌ Firestore Error: {e}")
+
 
 @app.route('/track-url', methods=['POST'])
 def track_url():
