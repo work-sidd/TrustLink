@@ -123,6 +123,63 @@ def track_url():
     except Exception as e:
         return jsonify({"error": f"Firestore Error: {e}"}), 500
 
+@app.route('/match-product', methods=['POST'])
+def match_product():
+    data = request.json
+    incoming_name = data.get("product_name")
+
+    if not incoming_name:
+        return jsonify({"error": "Missing product name"}), 400
+
+    try:
+        cleaned_input = clean_amazon_title(incoming_name)
+
+        # Step 1: Match against products collection
+        products_ref = db.collection("products").stream()
+
+        cleaned_to_doc = {}
+        doc_id_to_name = {}
+
+        for doc in products_ref:
+            doc_data = doc.to_dict()
+            name = doc_data.get("name")
+            if name:
+                cleaned = clean_amazon_title(name)
+                cleaned_to_doc[cleaned] = doc.id
+                doc_id_to_name[doc.id] = name
+
+        best_match, score = process.extractOne(
+            cleaned_input, cleaned_to_doc.keys(), scorer=fuzz.token_sort_ratio
+        )
+
+        matched_doc_id = cleaned_to_doc[best_match]
+        matched_product_name = doc_id_to_name[matched_doc_id]
+
+        # Step 2: Match against trustified_data document IDs
+        trustified_ref = db.collection("trustified_data").list_documents()
+        trustified_ids = [doc.id for doc in trustified_ref]
+
+        best_trustified_id, trust_score = process.extractOne(
+            matched_product_name, trustified_ids, scorer=fuzz.token_sort_ratio
+        )
+
+        if trust_score > 60:
+            trust_doc = db.collection("trustified_data").document(best_trustified_id).get()
+            trust_data = trust_doc.to_dict()
+
+            return jsonify({
+                "testing_status": trust_data.get("testing_status"),
+                "tested_by": trust_data.get("tested_by"),
+                "batch_no": trust_data.get("batch_no"),
+                "published_date": trust_data.get("published_date"),
+                "report_url": trust_data.get("report_url")
+            })
+        else:
+            return jsonify({"message": "No sufficiently close match found"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
 
