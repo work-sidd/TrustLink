@@ -142,28 +142,29 @@ def match_product():
     try:
         cleaned_input = clean_amazon_title(incoming_name)
 
-        # Step 1: Match against products collection
         products_ref = db.collection("products").stream()
 
         cleaned_to_doc = {}
-        doc_id_to_name = {}
+        doc_id_to_data = {}
 
         for doc in products_ref:
             doc_data = doc.to_dict()
             name = doc_data.get("name")
             if name:
-                cleaned = clean_amazon_title(name)
-                cleaned_to_doc[cleaned] = doc.id
-                doc_id_to_name[doc.id] = name
+                cleaned_name = clean_amazon_title(name)
+                cleaned_to_doc[cleaned_name] = doc.id
+                doc_id_to_data[doc.id] = doc_data  
 
         best_match, score = process.extractOne(
             cleaned_input, cleaned_to_doc.keys(), scorer=fuzz.token_sort_ratio
         )
 
         matched_doc_id = cleaned_to_doc[best_match]
-        matched_product_name = doc_id_to_name[matched_doc_id]
+        matched_product = doc_id_to_data[matched_doc_id]
 
-        # Step 2: Match against trustified_data document IDs
+        matched_product_name = matched_product.get("name")
+        matched_asin = matched_product.get("asin")
+
         trustified_ref = db.collection("trustified_data").list_documents()
         trustified_ids = [doc.id for doc in trustified_ref]
 
@@ -176,6 +177,7 @@ def match_product():
             trust_data = trust_doc.to_dict()
 
             return jsonify({
+                "asin": matched_asin,
                 "testing_status": trust_data.get("testing_status"),
                 "tested_by": trust_data.get("tested_by"),
                 "batch_no": trust_data.get("batch_no"),
@@ -187,6 +189,7 @@ def match_product():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
