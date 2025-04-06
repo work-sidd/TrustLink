@@ -71,15 +71,20 @@ def scrape_amazon(amazon_url):
     else:
         return {"error": "Invalid Amazon URL format"}
     
-def clean_amazon_title(title, word_limit=6):
-    title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
+def clean_amazon_title(title):
+    
+    title = title.lower()
 
-    title = re.sub(r'[|/,:]', '', title)
-    title = re.sub(r'\s+', ' ', title)
-
-    words = title.strip().split()
-    short_title = ' '.join(words[:word_limit])
-    return short_title
+    title = re.sub(r"\([^)]*\)", "", title)
+   
+    noise_terms = ["no added sugar", "improved strength", "faster muscle recovery", "1 kg", "2.2 lb", "g", "kg", "lb"]
+    for term in noise_terms:
+        title = title.replace(term, "")
+    
+    title = re.sub(r"[^a-z0-9\s]", "", title)
+    
+    title = re.sub(r"\s+", " ", title).strip()
+    return title
 
 def store_in_firestore(products):
     """
