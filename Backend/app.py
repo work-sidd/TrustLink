@@ -11,7 +11,6 @@ from rapidfuzz import fuzz, process
 
 app = Flask(__name__)
 
-
 firebase_credentials = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
 
 with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".json") as temp_file:
@@ -28,10 +27,8 @@ HEADERS = {
 
 def clean_amazon_title(title, word_limit=6):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
-
     title = re.sub(r'[|/,:]', '', title)
     title = re.sub(r'\s+', ' ', title)
-
     words = title.strip().split()
     short_title = ' '.join(words[:word_limit])
     return short_title
@@ -65,6 +62,75 @@ def scrape_amazon_search_results(search_url):
 
     return product_data
 
+def match_trustified_data(product_name):
+    cleaned_input = clean_amazon_title(product_name)
+
+    trustified_ref = db.collection("trustified_data").list_documents()
+    trustified_ids = [doc.id for doc in trustified_ref]
+
+    best_trustified_id, trust_score = process.extractOne(
+        cleaned_input, trustified_ids, scorer=fuzz.token_sort_ratio
+    )
+
+    if trust_score > 60:
+        trust_doc = db.collection("trustified_data").document(best_trustified_id).get()
+        trust_data = trust_doc.to_dict()
+        return trust_data
+    else:
+        return None
+
+def store_in_firestore(products):
+    for asin, product_info in products.items():
+        try:
+            trustified_match = match_trustified_data(product_info["name"])  # ⬅️ ADDED
+
+            if trustified_match:  # ⬅️ MERGE data if matched
+                product_info.update({
+                    "testing_status": trustified_match.get("testing_status"),
+                    "tested_by": trustified_match.get("tested_by"),
+                    "batch_no": trustified_match.get("batch_no"),
+                    "published_date": trustified_match.get("published_date"),
+                    "report_url": trustified_match.get("report_url")
+                })
+
+            # Store using ASIN as doc ID (ensures overwrite, no duplicates)
+            product_ref = db.collection("matched_results").document(asin)  # ⬅️ NEW COLLECTION
+            product_ref.set(product_info)
+
+            print(f"✅ Stored {product_info['name']} (ASIN: {asin})")
+
+        except Exception as e:
+            print(f"❌ Firestore Error: {e}")
+
+@app.route('/track-url', methods=['POST'])
+def track_url():
+    data = request.json
+    amazon_url = data.get("url")
+
+    if not amazon_url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    print(f"Received URL: {amazon_url}")
+
+    product_data = scrape_amazon(amazon_url)
+
+    if "error" in product_data:
+        return jsonify({"error": product_data["error"]}), 400
+
+    try:
+        store_in_firestore(product_data)
+        return jsonify({"message": "✅ Products scraped and matched successfully!"})
+    except Exception as e:
+        return jsonify({"error": f"Firestore Error: {e}"}), 500
+
+def scrape_amazon(amazon_url):
+    if "/s?" in amazon_url:
+        return scrape_amazon_search_results(amazon_url)
+    elif "/dp/" in amazon_url or "/gp/" in amazon_url:
+        return scrape_amazon_product_page(amazon_url)
+    else:
+        return {"error": "Invalid Amazon URL format"}
+
 def scrape_amazon_product_page(product_url):
     response = requests.get(product_url, headers=HEADERS)
     if response.status_code != 200:
@@ -88,110 +154,9 @@ def scrape_amazon_product_page(product_url):
         }
     }
 
-def scrape_amazon(amazon_url):
-    if "/s?" in amazon_url:
-        return scrape_amazon_search_results(amazon_url)
-    elif "/dp/" in amazon_url or "/gp/" in amazon_url:
-        return scrape_amazon_product_page(amazon_url)
-    else:
-        return {"error": "Invalid Amazon URL format"}
-
-def store_in_firestore(products):
-    for asin, product_info in products.items():
-        try:
-            product_ref = db.collection("amazon_data").document()
-            product_ref.set(product_info)
-            print(f"✅ Stored in Firestore: {product_info['full_name']} (ASIN: {asin})")
-        except Exception as e:
-            print(f"❌ Firestore Error: {e}")
-
-
-@app.route('/track-url', methods=['POST'])
-def track_url():
-    """
-    Receives an Amazon URL, scrapes product details, and stores them in Firestore.
-    """
-    data = request.json
-    amazon_url = data.get("url")
-
-    if not amazon_url:
-        return jsonify({"error": "No URL provided"}), 400
-
-    print(f"Received URL: {amazon_url}")
-
-    product_data = scrape_amazon(amazon_url)
-
-    if "error" in product_data:
-        return jsonify({"error": product_data["error"]}), 400
-
-    try:
-        store_in_firestore(product_data)
-        return jsonify({"message": "✅ Product details saved successfully!"})
-    except Exception as e:
-        return jsonify({"error": f"Firestore Error: {e}"}), 500
-
-@app.route('/match-product', methods=['POST'])
-def match_product():
-    data = request.json
-    incoming_name = data.get("product_name")
-
-    if not incoming_name:
-        return jsonify({"error": "Missing product name"}), 400
-
-    try:
-        cleaned_input = clean_amazon_title(incoming_name)
-
-        products_ref = db.collection("amazon_data").stream()
-
-        cleaned_to_doc = {}
-        doc_id_to_data = {}
-
-        for doc in products_ref:
-            doc_data = doc.to_dict()
-            name = doc_data.get("name")
-            if name:
-                cleaned_name = clean_amazon_title(name)
-                cleaned_to_doc[cleaned_name] = doc.id
-                doc_id_to_data[doc.id] = doc_data  
-
-        best_match, score = process.extractOne(
-            cleaned_input, cleaned_to_doc.keys(), scorer=fuzz.token_sort_ratio
-        )
-
-        matched_doc_id = cleaned_to_doc[best_match]
-        matched_product = doc_id_to_data[matched_doc_id]
-
-        matched_product_name = matched_product.get("name")
-        matched_asin = matched_product.get("asin")
-
-        trustified_ref = db.collection("trustified_data").list_documents()
-        trustified_ids = [doc.id for doc in trustified_ref]
-
-        best_trustified_id, trust_score = process.extractOne(
-            matched_product_name, trustified_ids, scorer=fuzz.token_sort_ratio
-        )
-
-        if trust_score > 60:
-            trust_doc = db.collection("trustified_data").document(best_trustified_id).get()
-            trust_data = trust_doc.to_dict()
-
-            return jsonify({
-                "asin": matched_asin,
-                "testing_status": trust_data.get("testing_status"),
-                "tested_by": trust_data.get("tested_by"),
-                "batch_no": trust_data.get("batch_no"),
-                "published_date": trust_data.get("published_date"),
-                "report_url": trust_data.get("report_url")
-            })
-        else:
-            return jsonify({"message": "No sufficiently close match found"}), 404
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
+
 
 
 
