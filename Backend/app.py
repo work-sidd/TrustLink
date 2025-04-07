@@ -129,23 +129,32 @@ def match_trustified_data(product_name):
     words = cleaned_input.split()
     input_brand = ' '.join(words[:2]).lower() if len(words) > 1 else cleaned_input.lower()
     
-    brand_matches = []
+    best_match = None
+    highest_score = 0
+    
     for entry in trustified_cache:
         cached_brand = entry["brand_name"].lower()
-        if cached_brand[:3] == input_brand[:3]:
-            brand_matches.append(entry)
+        
+        brand_score = 0
+
+        if cached_brand == input_brand:
+            brand_score = 100
+        elif cached_brand.split()[0] == input_brand.split()[0]:
+            brand_score = 70
+        elif cached_brand[:4] == input_brand[:4]:
+            brand_score = 40
+        else:
+            continue  
+            
+        product_score = fuzz.token_sort_ratio(normalized_input, entry["normalized"])
+        
+        total_score = (brand_score * 0.6) + (product_score * 0.4)
+        
+        if total_score > highest_score and brand_score >= 40 and total_score > 65:
+            highest_score = total_score
+            best_match = entry
     
-    if not brand_matches:
-        return None
-    
-    choices = [entry["normalized"] for entry in brand_matches]
-    match_result = process.extractOne(normalized_input, choices, scorer=fuzz.token_sort_ratio)
-    
-    if match_result and match_result[1] > 60:
-        matched_norm = match_result[0]
-        return next(entry for entry in brand_matches if entry["normalized"] == matched_norm)
-    
-    return None
+    return best_match if highest_score > 0 else None
 
 def store_in_firestore(products):
     for asin, product_info in products.items():
