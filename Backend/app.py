@@ -24,8 +24,13 @@ db = firestore.client()
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
 }
-
 trustified_cache = []
+
+def normalize_name(text):
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]", "_", text)
+    text = re.sub(r"_+", "_", text)
+    return text.strip("_")
 
 def load_trustified_data():
     global trustified_cache
@@ -111,11 +116,6 @@ def scrape_amazon(amazon_url):
     else:
         return {"error": "Invalid Amazon URL format"}
 
-def normalize_name(text):
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9]", "_", text)
-    text = re.sub(r"_+", "_", text)
-    return text.strip("_")
 
 def match_trustified_data(product_name):
     cleaned_input = clean_amazon_title(product_name)
