@@ -43,7 +43,12 @@ def load_trustified_data():
             "doc_id": doc.id,
             "brand_name": data.get("brand_name", ""),
             "product_name": data.get("product_name", ""),
-            "normalized": normalize_name(f"{data.get('brand_name', '')} {data.get('product_name', '')}")
+            "normalized": normalize_name(f"{data.get('brand_name', '')} {data.get('product_name', '')}"),
+            "testing_status": data.get("testing_status"),
+            "tested_by": data.get("tested_by"),
+            "batch_no": data.get("batch_no"),
+            "published_date": data.get("published_date"),
+            "report_url": data.get("report_url")
         })
 
 load_trustified_data()
