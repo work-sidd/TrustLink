@@ -37,7 +37,6 @@ def clean_amazon_title(title, word_limit=6):
     return short_title
 
 def extract_asin_from_url(url):
-    """Extract ASIN from a standard Amazon URL."""
     match = re.search(r"/dp/([A-Z0-9]{10})|/gp/product/([A-Z0-9]{10})", url)
     if match:
         return match.group(1) or match.group(2)
@@ -100,7 +99,7 @@ def scrape_amazon(amazon_url):
 def store_in_firestore(products):
     for asin, product_info in products.items():
         try:
-            product_ref = db.collection("products").document()
+            product_ref = db.collection("amazon_data").document()
             product_ref.set(product_info)
             print(f"✅ Stored in Firestore: {product_info['full_name']} (ASIN: {asin})")
         except Exception as e:
@@ -142,7 +141,7 @@ def match_product():
     try:
         cleaned_input = clean_amazon_title(incoming_name)
 
-        products_ref = db.collection("products").stream()
+        products_ref = db.collection("amazon_data").stream()
 
         cleaned_to_doc = {}
         doc_id_to_data = {}
@@ -189,50 +188,6 @@ def match_product():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route('/trust-data', methods=['POST'])
-def get_batch_trust_data():
-    try:
-        data = request.get_json()
-        asin_list = data.get("asins", [])
-        if not asin_list:
-            return jsonify({}), 400
-
-        result = {}
-
-        # Cache product name lookup for each ASIN
-        products_ref = db.collection("products")
-        for asin in asin_list:
-            query = products_ref.where("asin", "==", asin).stream()
-            product_doc = next(query, None)
-
-            if not product_doc:
-                continue
-
-            product_data = product_doc.to_dict()
-            trustified_doc_id = product_data.get("full_name")  # Or other field that matches trustified_data doc ID
-
-            if not trustified_doc_id:
-                continue
-
-            trust_doc = db.collection("trustified_data").document(trustified_doc_id).get()
-            if trust_doc.exists:
-                trust_data = trust_doc.to_dict()
-                result[asin] = {
-                    "testing_status": trust_data.get("testing_status"),
-                    "tested_by": trust_data.get("tested_by"),
-                    "batch_no": trust_data.get("batch_no"),
-                    "published_date": trust_data.get("published_date"),
-                    "report_url": trust_data.get("report_url")
-                }
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
 
 
 if __name__ == "__main__":
