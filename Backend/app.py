@@ -62,22 +62,61 @@ def scrape_amazon_search_results(search_url):
 
     return product_data
 
+def scrape_amazon_product_page(product_url):
+    response = requests.get(product_url, headers=HEADERS)
+    if response.status_code != 200:
+        return {"error": "Failed to fetch product page"}
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    product_name_tag = soup.select_one("#productTitle")
+    if not product_name_tag:
+        return {"error": "Product title not found"}
+
+    product_name = product_name_tag.get_text(strip=True)
+    asin = extract_asin_from_url(product_url)
+    if not asin:
+        return {"error": "ASIN not found in URL"}
+
+    return {
+        asin: {
+            "full_name": product_name,
+            "name": clean_amazon_title(product_name),
+            "asin": asin
+        }
+    }
+
+def scrape_amazon(amazon_url):
+    if "/s?" in amazon_url:
+        return scrape_amazon_search_results(amazon_url)
+    elif "/dp/" in amazon_url or "/gp/" in amazon_url:
+        return scrape_amazon_product_page(amazon_url)
+    else:
+        return {"error": "Invalid Amazon URL format"}
+
+def normalize_name(text):
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]", "_", text)
+    text = re.sub(r"_+", "_", text)
+    return text.strip("_")
+
 def match_trustified_data(product_name):
     cleaned_input = clean_amazon_title(product_name)
+    normalized_input = normalize_name(cleaned_input)
 
     trustified_ref = db.collection("trustified_data").list_documents()
     trustified_ids = [doc.id for doc in trustified_ref]
 
-    best_trustified_id, trust_score = process.extractOne(
-        cleaned_input, trustified_ids, scorer=fuzz.token_sort_ratio
+    best_match, trust_score = process.extractOne(
+        normalized_input, trustified_ids, scorer=fuzz.token_sort_ratio
     )
 
     if trust_score > 60:
-        trust_doc = db.collection("trustified_data").document(best_trustified_id).get()
+        trust_doc = db.collection("trustified_data").document(best_match).get()
         trust_data = trust_doc.to_dict()
         return trust_data
     else:
         return None
+
 
 def store_in_firestore(products):
     for asin, product_info in products.items():
@@ -122,37 +161,6 @@ def track_url():
         return jsonify({"message": "✅ Products scraped and matched successfully!"})
     except Exception as e:
         return jsonify({"error": f"Firestore Error: {e}"}), 500
-
-def scrape_amazon(amazon_url):
-    if "/s?" in amazon_url:
-        return scrape_amazon_search_results(amazon_url)
-    elif "/dp/" in amazon_url or "/gp/" in amazon_url:
-        return scrape_amazon_product_page(amazon_url)
-    else:
-        return {"error": "Invalid Amazon URL format"}
-
-def scrape_amazon_product_page(product_url):
-    response = requests.get(product_url, headers=HEADERS)
-    if response.status_code != 200:
-        return {"error": "Failed to fetch product page"}
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    product_name_tag = soup.select_one("#productTitle")
-    if not product_name_tag:
-        return {"error": "Product title not found"}
-
-    product_name = product_name_tag.get_text(strip=True)
-    asin = extract_asin_from_url(product_url)
-    if not asin:
-        return {"error": "ASIN not found in URL"}
-
-    return {
-        asin: {
-            "full_name": product_name,
-            "name": clean_amazon_title(product_name),
-            "asin": asin
-        }
-    }
 
 if __name__ == "__main__":
     app.run(debug=True, port=10000)
