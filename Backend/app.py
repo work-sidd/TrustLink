@@ -125,18 +125,26 @@ def scrape_amazon(amazon_url):
 def match_trustified_data(product_name):
     cleaned_input = clean_amazon_title(product_name)
     normalized_input = normalize_name(cleaned_input)
-
-    choices = [entry["normalized"] for entry in trustified_cache]
-    match_result = process.extractOne(normalized_input, choices, scorer=fuzz.token_sort_ratio)
-
-    if not match_result:
+    
+    words = cleaned_input.split()
+    input_brand = ' '.join(words[:2]).lower() if len(words) > 1 else cleaned_input.lower()
+    
+    brand_matches = []
+    for entry in trustified_cache:
+        cached_brand = entry["brand_name"].lower()
+        if cached_brand[:3] == input_brand[:3]:
+            brand_matches.append(entry)
+    
+    if not brand_matches:
         return None
-
-    best_match_norm, trust_score = match_result[0], match_result[1]
-
-    if trust_score > 60:
-        return next((entry for entry in trustified_cache if entry["normalized"] == best_match_norm), None)
-
+    
+    choices = [entry["normalized"] for entry in brand_matches]
+    match_result = process.extractOne(normalized_input, choices, scorer=fuzz.token_sort_ratio)
+    
+    if match_result and match_result[1] > 60:
+        matched_norm = match_result[0]
+        return next(entry for entry in brand_matches if entry["normalized"] == matched_norm)
+    
     return None
 
 def store_in_firestore(products):
