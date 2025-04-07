@@ -106,10 +106,12 @@ def match_trustified_data(product_name):
     trustified_ref = db.collection("trustified_data").list_documents()
     trustified_ids = [doc.id for doc in trustified_ref]
 
-    best_match, trust_score = process.extractOne(
-        normalized_input, trustified_ids, scorer=fuzz.token_sort_ratio
-    )
+    match_result = process.extractOne(normalized_input, trustified_ids, scorer=fuzz.token_sort_ratio)
 
+    if not match_result:
+        return None
+    best_match, trust_score = match_result[0], match_result[1]
+    
     if trust_score > 60:
         trust_doc = db.collection("trustified_data").document(best_match).get()
         trust_data = trust_doc.to_dict()
