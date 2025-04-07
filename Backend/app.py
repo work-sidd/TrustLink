@@ -25,6 +25,24 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
 }
 
+trustified_cache = []
+
+def load_trustified_data():
+    global trustified_cache
+    trustified_cache = []
+
+    docs = db.collection("trustified_data").stream()
+    for doc in docs:
+        data = doc.to_dict()
+        trustified_cache.append({
+            "doc_id": doc.id,
+            "brand_name": data.get("brand_name", ""),
+            "product_name": data.get("product_name", ""),
+            "normalized": normalize_name(f"{data.get('brand_name', '')} {data.get('product_name', '')}")
+        })
+
+load_trustified_data()
+
 def clean_amazon_title(title, word_limit=6):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', title)
     title = re.sub(r'[|/,:]', '', title)
@@ -103,29 +121,25 @@ def match_trustified_data(product_name):
     cleaned_input = clean_amazon_title(product_name)
     normalized_input = normalize_name(cleaned_input)
 
-    trustified_ref = db.collection("trustified_data").list_documents()
-    trustified_ids = [doc.id for doc in trustified_ref]
-
-    match_result = process.extractOne(normalized_input, trustified_ids, scorer=fuzz.token_sort_ratio)
+    choices = [entry["normalized"] for entry in trustified_cache]
+    match_result = process.extractOne(normalized_input, choices, scorer=fuzz.token_sort_ratio)
 
     if not match_result:
         return None
-    best_match, trust_score = match_result[0], match_result[1]
-    
-    if trust_score > 60:
-        trust_doc = db.collection("trustified_data").document(best_match).get()
-        trust_data = trust_doc.to_dict()
-        return trust_data
-    else:
-        return None
 
+    best_match_norm, trust_score = match_result[0], match_result[1]
+
+    if trust_score > 60:
+        return next((entry for entry in trustified_cache if entry["normalized"] == best_match_norm), None)
+
+    return None
 
 def store_in_firestore(products):
     for asin, product_info in products.items():
         try:
-            trustified_match = match_trustified_data(product_info["name"])  # ⬅️ ADDED
+            trustified_match = match_trustified_data(product_info["name"])  
 
-            if trustified_match:  # ⬅️ MERGE data if matched
+            if trustified_match:  
                 product_info.update({
                     "testing_status": trustified_match.get("testing_status"),
                     "tested_by": trustified_match.get("tested_by"),
@@ -134,14 +148,16 @@ def store_in_firestore(products):
                     "report_url": trustified_match.get("report_url")
                 })
 
-            # Store using ASIN as doc ID (ensures overwrite, no duplicates)
-            product_ref = db.collection("matched_results").document(asin)  # ⬅️ NEW COLLECTION
-            product_ref.set(product_info)
+                product_ref = db.collection("matched_results").document(asin)  
+                product_ref.set(product_info)
 
-            print(f"✅ Stored {product_info['name']} (ASIN: {asin})")
+                print(f"✅ Stored {product_info['name']} (ASIN: {asin})")
+            else:
+                print(f"⚠️ No trustified match for {product_info['name']} (ASIN: {asin}) — Skipped storing.")
 
         except Exception as e:
             print(f"❌ Firestore Error: {e}")
+
 
 @app.route('/track-url', methods=['POST'])
 def track_url():
