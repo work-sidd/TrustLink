@@ -1,3 +1,53 @@
+Brand Name: Nutrija
+Product Details:
+- Product Name– Caffeine Powder Pre Workout
+- Batch No. Tested- 300125
+- Published Date- 03 April 2025
+- Tested By- Eurofins
+- Testing Status- Failed
+Image URL: https://static.wixstatic.com/media/73207d_686a2c848fa7455e85382eb06f5d81a2~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
+Link to Test Report: https://www.trustified.in/passandfail/nutrijapreworkout
+----------------------------------------
+Brand Name: Amul
+Product Details:
+- Product Name– Amul Butter
+- Batch No. Tested- SAN3211
+- Published Date- 30 March 2025
+- Tested By- Eurofins
+- Testing Status- Passed
+Image URL: https://static.wixstatic.com/media/73207d_9e9ef8552b554016a145ebd982c91585~mv2.jpg/v1/fill/w_271,h_271,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.jpg
+Link to Test Report: https://www.trustified.in/passandfail/amulbutter
+----------------------------------------
+Brand Name: Zandu
+Product Details:
+- Product Name–  Ashwagandha Gold Plus
+- Batch No. Tested-  ES0013
+- Published Date- 26 March 2025
+- Tested By- Eurofins
+- Testing Status- Failed
+Image URL: https://static.wixstatic.com/media/73207d_8e8fefe694384be398294b056f169e8d~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
+Link to Test Report: https://www.trustified.in/passandfail/zanduashwagandhapuregold
+----------------------------------------
+Brand Name: Saffola
+Product Details:
+- Product Name–  Organic Honey
+- Batch No. Tested-  N78
+- Published Date- 18 March 2025
+- Tested By- Eurofins
+- Testing Status- Passed
+Image URL: https://static.wixstatic.com/media/73207d_3379884f7be8467985b60be34624f56a~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
+Link to Test Report: https://www.trustified.in/passandfail/saffolaorganichoney
+----------------------------------------
+Brand Name: Saffola
+Product Details:
+- Product Name–  Honey Sundarbans
+- Batch No. Tested-  NA266
+- Published Date- 18 March 2025
+- Tested By- Eurofins
+- Testing Status- Failed
+Image URL: https://static.wixstatic.com/media/73207d_5d5d413a673c4df6a0f99330cf4cb4e4~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
+Link to Test Report: https://www.trustified.in/passandfail/honeysundarbans
+----------------------------------------
 Brand Name: Trunativ
 Product Details:
 - Product Name– Whey Protein Pro Blend
@@ -177,16 +227,6 @@ Product Details:
 - Testing Status- Failed
 Image URL: https://static.wixstatic.com/media/73207d_6672776b00de4d8d985d91ff44242168~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
 Link to Test Report: https://www.trustified.in/passandfail/rawrxveganomega
-----------------------------------------
-Brand Name: GNC
-Product Details:
-- Product Name– Apple Cider Vinegar 750 MG
-- Batch No. Tested- QGFO14004
-- Published Date- 19 Jan 2025
-- Tested By- Eurofins
-- Testing Status- Failed
-Image URL: https://static.wixstatic.com/media/73207d_88c20d58ad7d45bd91813e63f598f5e0~mv2.png/v1/fill/w_271,h_271,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Image-place-holder_edited.png
-Link to Test Report: https://www.trustified.in/passandfail/gncapplecidervinegar
 ----------------------------------------
 Brand Name: Amyleord
 Product Details:
